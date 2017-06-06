@@ -4,15 +4,6 @@ library("tseries")
 library("astsa")
 set.seed(42)
 par(mar=c(5.1,4.1,4.1,2.1))
-
-#rectify Error in plot.new() : figure margins too large
-#par(mar=c(1,1,1,1))
-#par(mar = rep(2, 4))
-
-#load data from .csv file
-#Hotel <- read.csv('monthly-data-relating-to-hotels-.csv',stringsAsFactors = FALSE)
-names(Hotel)
-tail(Hotel)
 Hotel <- read.csv('monthly-data-relating-to-hotels-.csv',header = TRUE, sep = ",", stringsAsFactors = FALSE)
 #get month, room nights, takings columns
 names(Hotel)[2]
@@ -82,14 +73,14 @@ fit_dyn2 <- arima(dy_n,order=c(1,0,1),seasonal=list(order=c(0,1,1),period=12))
 fit_dyn3 <- arima(dy_n,order=c(0,0,1),seasonal=list(order=c(0,1,2),period=12))
 fit_dyn4 <- arima(dy_n,order=c(1,0,1),seasonal=list(order=c(0,1,2),period=12))
 par(mfrow=c(2,2))
-cpgram(fit_dyn1$residuals, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,1)[12]')
-cpgram(fit_dyn2$residuals, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,1)[12]')
-cpgram(fit_dyn3$residuals, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,2)[12]')
-cpgram(fit_dyn4$residuals, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,2)[12]')
-qqnorm(fit_dyn1$residuals); abline(a = 0, b = 1)
-qqnorm(fit_dyn2$residuals)
-qqnorm(fit_dyn3$residuals)
-qqnorm(fit_dyn4$residuals)
+cpgram(fit_dyn1$resid, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,1)[12]')
+cpgram(fit_dyn2$resid, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,1)[12]')
+cpgram(fit_dyn3$resid, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,2)[12]')
+cpgram(fit_dyn4$resid, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,2)[12]')
+qqnorm(fit_dyn1$resid/sd(fit_dyn1$resid)); abline(a = 0, b = 1)
+qqnorm(fit_dyn2$resid/sd(fit_dyn2$resid)); abline(a = 0, b = 1)
+qqnorm(fit_dyn3$resid/sd(fit_dyn3$resid)); abline(a = 0, b = 1)
+qqnorm(fit_dyn4$resid/sd(fit_dyn4$resid)); abline(a = 0, b = 1)
 tsdiag(fit_dyn1)
 tsdiag(fit_dyn2)
 tsdiag(fit_dyn3)
@@ -103,14 +94,14 @@ fit_dyt2 <- arima(dy_t,order=c(1,0,1),seasonal=list(order=c(0,1,1),period=12))
 fit_dyt3 <- arima(dy_t,order=c(0,0,1),seasonal=list(order=c(0,1,2),period=12))
 fit_dyt4 <- arima(dy_t,order=c(1,0,1),seasonal=list(order=c(0,1,2),period=12))
 par(mfrow=c(2,2))
-cpgram(fit_dyt1$residuals, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,1)[12]')
-cpgram(fit_dyt2$residuals, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,1)[12]')
-cpgram(fit_dyt3$residuals, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,2)[12]')
-cpgram(fit_dyt4$residuals, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,2)[12]')
-qqnorm(fit_dyt1$residuals); abline(a = 0, b = 1)
-qqnorm(fit_dyt2$residuals)
-qqnorm(fit_dyt3$residuals)
-qqnorm(fit_dyt4$residuals)
+cpgram(fit_dyt1$resid, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,1)[12]')
+cpgram(fit_dyt2$resid, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,1)[12]')
+cpgram(fit_dyt3$resid, main='Cummulative periodogram for ARIMA(0,0,1)(0,1,2)[12]')
+cpgram(fit_dyt4$resid, main='Cummulative periodogram for ARIMA(1,0,1)(0,1,2)[12]')
+qqnorm(fit_dyt1$resid/sd(fit_dyt1$resid)); abline(a = 0, b = 1)
+qqnorm(fit_dyt2$resid/sd(fit_dyt2$resid)); abline(a = 0, b = 1)
+qqnorm(fit_dyt3$resid/sd(fit_dyt3$resid)); abline(a = 0, b = 1)
+qqnorm(fit_dyt4$resid/sd(fit_dyt4$resid)); abline(a = 0, b = 1)
 tsdiag(fit_dyt1)
 tsdiag(fit_dyt2)
 tsdiag(fit_dyt3)
@@ -119,14 +110,57 @@ AIC(fit_dyt1,fit_dyt2,fit_dyt3,fit_dyt4)
 BIC(fit_dyt1,fit_dyt2,fit_dyt3,fit_dyt4)
 
 # one-step prediction
-train_len <- as.integer(len/2)
-fit_n_train <- arima(nights_month[1:train_len],order=c(0,1,1),seasonal=list(order=c(0,1,1),period=12))
-fit_t_train <- arima(takings_month[1:train_len],order=c(0,1,1),seasonal=list(order=c(0,1,2),period=12))
-fore_n <- forecast(fit_n_train, len-train_len)
-fore_t <- forecast(fit_t_train, len-train_len)
+train_len <- as.integer((len-1)/2)
+predict_len <- len-1-train_len
+nights_train <- ts(nights, start=c(1980,1), end=c(1987,9), frequency=12)
+takings_train <- ts(takings, start=c(1980,1), end=c(1987,9), frequency=12)
+fit_n_train <- arima(nights_train,order=c(0,1,1),seasonal=list(order=c(0,1,1),period=12))
+fit_t_train <- arima(takings_train,order=c(0,1,1),seasonal=list(order=c(0,1,2),period=12))
+fore_n <- forecast(fit_n_train, predict_len)
+fore_t <- forecast(fit_t_train, predict_len)
+
 par(mfrow=c(1,1))
-plot(fore_n, col="blue")
-lines(nights_month,col="red")
+# Plot Room_nights
+plot(nights_month,main='Forecasts from ARIMA(0,1,1)(0,1,1)[12]',ylab='Monthly Room_nights')
+lines(fore_n$fitted, col='red')
+lines(fore_n$mean, col='blue')
+# 95% confidence interval
+lines(fore_n$upper[,2], lty=2, col='green')
+lines(fore_n$lower[,2], lty=4, col='green')
+legend('topleft',
+       c('Raw data','Fitted', 'Predicted mean', '95% CI upper bound', '95% lower bound'), 
+       lty=c(1,1,1,2,4), col=c('black','red','blue','green','green'))
+# Plot Takings
+plot(takings_month,main='Forecasts from ARIMA(0,1,1)(0,1,2)[12]',ylab='Monthly Takings')
+lines(fore_t$fitted, col='red')
+lines(fore_t$mean, col='blue')
+# 95% confidence interval
+lines(fore_t$upper[,2], lty=2, col='green')
+lines(fore_t$lower[,2], lty=4, col='green')
+legend('topleft',
+       c('Raw data','Fitted', 'Predicted mean', '95% CI upper bound', '95% lower bound'), 
+       lty=c(1,1,1,2,4), col=c('black','red','blue','green','green'))
+
+# Plot forcasts with total data fitted
+plot(forecast(arima(nights_month,order=c(0,1,1),seasonal=list(order=c(0,1,1),period=12))), ylab='Monthly Room_nights')
+plot(forecast(arima(takings_month,order=c(0,1,1),seasonal=list(order=c(0,1,2),period=12))), ylab='Monthly Takings')
+
+
+
+
+
+
+#rectify Error in plot.new() : figure margins too large
+#par(mar=c(1,1,1,1))
+#par(mar = rep(2, 4))
+
+#load data from .csv file
+#Hotel <- read.csv('monthly-data-relating-to-hotels-.csv',stringsAsFactors = FALSE)
+names(Hotel)
+tail(Hotel)
+
+
+
 # uncertainty 
 
 
